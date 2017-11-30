@@ -16,44 +16,51 @@ API_URL_INDIVIDUAL = 'https://api.coinmarketcap.com/v1/ticker/{}/'
 sort_dict = {'rank': 'rank', 'name': 'name', 'held value': 'value'}
 
 
-class ConfigFile:
+class Config:
+    def __init__(self, ini):
+        if os.path.isfile(ini):
+            self.config = configparser.RawConfigParser()
+            self.config.read(ini)
+
+        else:
+            print('{} not found.')
+            exit()
+
+
+class ConfigFile(Config):
     def __init__(self):
-        if os.path.isfile(CONFIG_FILE):
-            config = configparser.RawConfigParser()
-            config.read(CONFIG_FILE)
-            self.currency = config['options']['currency'].upper()
-            self.dp_fiat = config['decimal places']['fiat']
-            self.dp_crypto = config['decimal places']['crypto']
-            try:
-                self.sort_by = sort_dict[config['sorting']['sort by']]
+        super().__init__(CONFIG_FILE)
+        self.currency = self.config['options']['currency'].upper()
+        self.dp_fiat = self.config['decimal places']['fiat']
+        self.dp_crypto = self.config['decimal places']['crypto']
+        try:
+            self.sort_by = sort_dict[self.config['sorting']['sort by']]
 
-            except KeyError:
-                print('Sort key in config file ({}) not recognised. Valid options ' \
-                      'are \'rank\', \'name\' and'.format(
-                      config['sorting']['sort by']))
+        except KeyError:
+            print('Sort key in config file ({}) not recognised. Valid options ' \
+                  'are \'rank\', \'name\' and'.format(
+                  self.config['sorting']['sort by']))
 
-                print('\'held value\'. Using the default sort key (\'rank\').')
-                self.sort_by = 'rank'
+            print('\'held value\'. Using the default sort key (\'rank\').')
+            self.sort_by = 'rank'
 
-            self.sort_direction = config['sorting']['sort direction']
-            if self.sort_direction.lower() not in ['ascending', 'descending']:
-                print('Sort direction in config file ({}) not recognised. Valid options ' \
-                      'are \'ascending\' and \'descending\'.'.format(
-                      config['sorting']['sort direction']))
+        self.sort_direction = self.config['sorting']['sort direction']
+        if self.sort_direction.lower() not in ['ascending', 'descending']:
+            print('Sort direction in config file ({}) not recognised. Valid options ' \
+                  'are \'ascending\' and \'descending\'.'.format(
+                  self.config['sorting']['sort direction']))
 
-                print('Using the default sort direction (\'ascending\').')
-                self.sort_by = 'ascending'
+            print('Using the default sort direction (\'ascending\').')
+            self.sort_by = 'ascending'
 
 
-class CoinsFile:
+class CoinsFile(Config):
     def __init__(self):
-        if os.path.isfile(COINS_FILE):
-            coins_raw = configparser.RawConfigParser()
-            coins_raw.read(COINS_FILE)
-            self.coins = {}
-            for section in coins_raw.sections():
-                #print(section)
-                self.coins[coins_raw[section]['name'].lower()] = float(coins_raw[section]['held'])
+        super().__init__(COINS_FILE)
+        self.coins = {}
+        for section in self.config.sections():
+            #print(section)
+            self.coins[self.config[section]['name'].lower()] = float(self.config[section]['held'])
 
 
 class Coin:
@@ -155,7 +162,7 @@ def get_response(url):
         return requests.get(url, timeout=5).json()
 
     except:
-        pass
+        print('error')
 
 
 def draw_border(a, b, c, d, e):
@@ -191,6 +198,7 @@ if __name__ == '__main__':
             data = [x for x in response if x['name'].lower() == n][0]
 
         except:
+            print('hmm')
             continue
 
         else:
