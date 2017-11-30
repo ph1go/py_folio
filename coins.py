@@ -23,7 +23,7 @@ class Config:
             self.config.read(ini)
 
         else:
-            print('{} not found.')
+            print('{} not found.'.format(ini))
             exit()
 
 
