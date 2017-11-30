@@ -13,9 +13,7 @@ COINS_FILE = os.path.join(ROOT_PATH, 'coins.ini')
 API_URL_TOP_100 = 'https://api.coinmarketcap.com/v1/ticker/'
 API_URL_INDIVIDUAL = 'https://api.coinmarketcap.com/v1/ticker/{}/'
 
-sort_dict = {'rank': 'rank', 'name': 'name',
-             '24hr volume': 'volume_24h',
-             'held value': 'value'}
+sort_dict = {'rank': 'rank', 'name': 'name', 'held value': 'value'}
 
 
 class ConfigFile:
