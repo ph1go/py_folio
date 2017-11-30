@@ -155,7 +155,7 @@ def get_response(url):
         return requests.get(url, timeout=5).json()
 
     except:
-        print('error')
+        pass
 
 
 def draw_border(a, b, c, d, e):
@@ -191,7 +191,6 @@ if __name__ == '__main__':
             data = [x for x in response if x['name'].lower() == n][0]
 
         except:
-            print('hmm')
             continue
 
         else:
