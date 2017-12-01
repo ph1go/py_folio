@@ -23,7 +23,7 @@ class Config:
             self.config.read(ini)
 
         else:
-            print('{} not found.'.format(ini))
+            print('{} not found.')
             exit()
 
 
@@ -33,6 +33,7 @@ class ConfigFile(Config):
         self.currency = self.config['options']['currency'].upper()
         self.dp_fiat = self.config['decimal places']['fiat']
         self.dp_crypto = self.config['decimal places']['crypto']
+        self.dp_percent = self.config['decimal places']['percent']
         try:
             self.sort_by = sort_dict[self.config['sorting']['sort by']]
 
@@ -66,7 +67,7 @@ class CoinsFile(Config):
 class Coin:
     total_value = 0
     m_name = m_symbol = m_price = m_price_btc = m_price_eth = 0
-    m_held = m_value = m_value_btc = m_value_eth = 0
+    m_held = m_value = m_value_btc = m_value_eth = m_percent = 0
 
     def __init__(self, data, config, held=None, comparison=None):
         self.data = data
@@ -137,6 +138,18 @@ class Coin:
             if len(self.formatted_value_in_eth) > Coin.m_value_eth:
                 Coin.m_value_eth = len(self.formatted_value_in_eth)
 
+            if len(self.formatted_value) > Coin.m_value:
+                Coin.m_value = len(self.formatted_value)
+
+    def get_percent(self):
+        self.percent = (self.value / Coin.total_value) * 100
+        self.formatted_percent = '{}%'.format('{0:,.{p}f}'.format(self.percent, p=config.dp_percent))
+
+        if len(self.formatted_percent) > Coin.m_percent:
+            Coin.m_percent = len(self.formatted_percent)
+
+
+
     @classmethod
     def format_totals(cls):
         cls.formatted_total_value = '{} {}'.format('{0:,.{p}f}'.format(cls.total_value, p=config.dp_fiat),
@@ -165,19 +178,38 @@ def get_response(url):
         print('error')
 
 
-def draw_border(a, b, c, d, e):
-    return (a + (h*(4+4)) + b
-            + (h*(Coin.m_name+4)) + b
-            + (h*(Coin.m_price+Coin.m_price_btc+Coin.m_price_eth+8)) + c
-            + (h*(Coin.m_held+Coin.m_symbol+5)) + d
-            + (h*(Coin.m_value+Coin.m_value_btc+Coin.m_value_eth+8)) + e)
+def calc_percents(results):
+    for coin in results:
+        coin.percent = (coin.value / Coin.total_value) * 100
+        print(coin.name, coin.percent)
 
+
+
+def draw_border(name, a, b, c, d, e, f):
+    if name == 't':
+        return (a + (h*(4+4)) + b
+                + (h*(Coin.m_name+4)) + b
+                + (h*(Coin.m_price+Coin.m_price_btc+Coin.m_price_eth+8)) + c
+                + (h*(Coin.m_held+Coin.m_symbol+5)) + d
+                + (h*(Coin.m_value+Coin.m_value_btc+Coin.m_value_eth+8)) + e)
+
+    else:
+        return (a + (h*(4+4)) + b
+                + (h*(Coin.m_name+4)) + b
+                + (h*(Coin.m_price+Coin.m_price_btc+Coin.m_price_eth+8)) + c
+                + (h*(Coin.m_held+Coin.m_symbol+5)) + d
+                + (h*(Coin.m_value+Coin.m_value_btc+Coin.m_value_eth+8)) + d
+                + (h*(Coin.m_percent+4)) + f)
 
 if __name__ == '__main__':
     tl, tm1, tm2, tr = '\u2554', '\u2564', '\u2566', '\u2557'
     ml, mm1, mm2, mr = '\u2560', '\u256a', '\u256c', '\u2563'
     bl, bm1, bm2, br = '\u255a', '\u2567', '\u2569', '\u255d'
     v1, v2, h = '\u2502', '\u2551', '\u2550'
+    #print('tl: {}  tm1: {}  tm2: {}  tr: {}'.format(tl, tm1, tm2, tr))
+    #print('ml: {}  mm1: {}  mm2: {}  mr: {}'.format(ml, mm1, mm2, mr))
+    #print('bl: {}  bm1: {}  bm2: {}  br: {}'.format(bl, bm1, bm2, br))
+    #print('v1: {}  v2: {}  h: {}\n'.format(v1, v2, h))
     config = ConfigFile()
     currency = config.currency
     sort_by = config.sort_by
@@ -222,8 +254,13 @@ if __name__ == '__main__':
                 if r['error'] == 'id not found':
                     print('No matches found for coin name/symbol: \'{}\'.'.format(coin))
 
+                continue
+
             except (KeyError, TypeError):
                 results.append(Coin(r[0], config, coins[coin], comparison))
+
+    for coin in results:
+        coin.get_percent()
 
     if config.sort_direction == 'ascending':
         sorted_coins = sorted(results, key=operator.attrgetter(config.sort_by))
@@ -231,33 +268,39 @@ if __name__ == '__main__':
     else:
         sorted_coins = sorted(results, key=operator.attrgetter(config.sort_by), reverse=True)
 
-    columns = '{v2}  {:>4}  {v1}  {:{m_name}}  {v1}  {:>{m_price}}  {:>{m_price_btc}}  ' \
-              '{:>{m_price_eth}}  {v2}  {:>{m_held}} {:{m_symbol}}  {v2}  {:>{m_value}}  ' \
-              '{:>{m_value_btc}}  {:>{m_value_eth}}  {v2}'
+    columns = ('{v2}  {:>4}  {v1}  {:{m_name}}  {v1}  {:>{m_price}}  {:>{m_price_btc}}  ' \
+               '{:>{m_price_eth}}  {v2}  {:>{m_held}} {:{m_symbol}}  {v2}  {:>{m_value}}  ' \
+               '{:>{m_value_btc}}  {:>{m_value_eth}}  {v2}')
 
     pad = (Coin.m_name + Coin.m_price + Coin.m_price_btc + Coin.m_price_eth +
            Coin.m_held + Coin.m_symbol + 29)
 
     Coin.format_totals()
 
-    print(draw_border(tl, tm1, tm2, tm2, tr))
-    print(columns.format('Rank', 'Name', 'Price', 'In BTC', 'In ETH', 'Held', '', 'Value', 'In BTC', 'In ETH',
+    print(draw_border('t', tl, tm1, tm2, tm2, tr, None))
+    print(columns.format('Rank', 'Name', 'Price', 'In BTC', 'In ETH',
+                         'Held', '', 'Value', 'In BTC', 'In ETH', '',
                          m_name=Coin.m_name, m_price=Coin.m_price, m_price_btc=Coin.m_price_btc,
                          m_price_eth=Coin.m_price_eth, m_held=Coin.m_held,
                          m_symbol=Coin.m_symbol, m_value=Coin.m_value,
-                         m_value_btc=Coin.m_value_btc, m_value_eth=Coin.m_value_eth, v1=v1, v2=v2))
+                         m_value_btc=Coin.m_value_btc, m_value_eth=Coin.m_value_eth,
+                         m_percent=Coin.m_percent, v1=v1, v2=v2))
 
-    print(draw_border(ml, mm1, mm2, mm2, mr))
+    columns += '  {:>{m_percent}}  {v2}'
+
+    print(draw_border('m', ml, mm1, mm2, mm2, mm2, tr))
     for coin in sorted_coins:
         print(columns.format('{})'.format(coin.rank), coin.name, coin.formatted_local_price,
                              coin.formatted_price_in_btc, coin.formatted_price_in_eth,
                              coin.formatted_held, coin.symbol, coin.formatted_value,
                              coin.formatted_value_in_btc, coin.formatted_value_in_eth,
+                             coin.formatted_percent,
                              m_name=Coin.m_name, m_price=Coin.m_price, m_price_btc=Coin.m_price_btc,
                              m_price_eth=Coin.m_price_eth, m_held=Coin.m_held,
                              m_symbol=Coin.m_symbol, m_value=Coin.m_value,
-                             m_value_btc=Coin.m_value_btc, m_value_eth=Coin.m_value_eth, v1=v1, v2=v2))
+                             m_value_btc=Coin.m_value_btc, m_value_eth=Coin.m_value_eth,
+                             m_percent=Coin.m_percent, v1=v1, v2=v2))
 
-    print(draw_border(bl, bm1, bm2, mm2, mr))
+    print(draw_border('b', bl, bm1, bm2, mm2, mm2, br))
     print(' ' * (pad-8) + 'Totals: ' + v2 + Coin.totals_str + '  ' + v2)
     print(' ' * pad + bl + h * (len(Coin.totals_str)+2) + br)
