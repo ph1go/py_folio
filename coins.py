@@ -7,13 +7,13 @@ import requests
 import json
 import operator
 
-avoid_self = False
+avoid_self = True
 
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 CONFIG_FILE = os.path.join(ROOT_PATH, 'config.ini')
 COINS_FILE = os.path.join(ROOT_PATH, 'coins.ini')
-API_URL_TOP_100 = 'https://api.coinmarketcap.com/v1/ticker/'
-API_URL_INDIVIDUAL = 'https://api.coinmarketcap.com/v1/ticker/{}/'
+API_URL = 'https://api.coinmarketcap.com/v1/ticker/'
+#API_URL_INDIVIDUAL = API_URL_TOP_100 + '{}/'
 
 sort_dict = {'rank': 'rank', 'name': 'name', 'held value': 'value'}
 
@@ -31,7 +31,7 @@ class Config:
 class ConfigFile(Config):
     def __init__(self):
         super().__init__(CONFIG_FILE)
-        self.currency = self.config['options']['currency'].upper()
+        self.currency = self.config['options']['currency'].lower()
         self.dp_fiat = self.config['decimal places']['fiat']
         self.dp_crypto = self.config['decimal places']['crypto']
         self.dp_percent = self.config['decimal places']['percent']
@@ -75,14 +75,14 @@ class Coin:
         self.name = self.data['name']
         self.symbol = self.data['symbol']
         self.price_usd = self.data['price_usd']
-        if config.currency.lower() == 'usd':
+        if config.currency == 'usd':
             self.local_price = float(self.price_usd)
 
         else:
-            self.local_price = float(self.data['price_{}'.format(config.currency.lower())])
+            self.local_price = float(self.data['price_{}'.format(config.currency)])
 
         self.formatted_local_price = '{} {}'.format('{0:,.{p}f}'.format(
-            self.local_price, p=config.dp_fiat), config.currency)
+            self.local_price, p=config.dp_fiat), config.currency.upper())
 
         if held:
             self.held = held
@@ -91,7 +91,7 @@ class Coin:
             self.value = self.local_price * self.held
             Coin.total_value += self.value
             self.formatted_value = '{} {}'.format('{0:,.{p}f}'.format(self.value, p=config.dp_fiat),
-                                                    config.currency)
+                                                    config.currency.upper())
 
             Coin.m_name = self.check_longest(self.name, Coin.m_name)
             Coin.m_symbol = self.check_longest(self.symbol, Coin.m_symbol)
@@ -144,7 +144,7 @@ class Coin:
     @classmethod
     def format_totals(cls):
         cls.formatted_total_value = '{} {}'.format('{0:,.{p}f}'.format(cls.total_value, p=config.dp_fiat),
-                                                   config.currency)
+                                                   config.currency.upper())
 
         if len(cls.formatted_total_value) > cls.m_value:
             cls.m_value = len(cls.formatted_total_value)
@@ -172,6 +172,9 @@ class Coin:
 
 
 def get_response(url):
+    if currency != 'usd':
+        url += '?convert={}'.format(currency)
+
     try:
         return requests.get(url, timeout=5).json()
 
@@ -221,15 +224,11 @@ if __name__ == '__main__':
     config = ConfigFile()
     currency = config.currency
     sort_by = config.sort_by
-    if currency != 'USD':
-        API_URL_TOP_100 += '?convert={}'.format(currency)
-        API_URL_INDIVIDUAL += '?convert={}'.format(currency)
-
     coins = CoinsFile().coins
     page_one = []
     results = []
     comparison = {}
-    response = get_response(API_URL_TOP_100)
+    response = get_response(API_URL)
 
     # gets comparison data for btc and eth
 
@@ -255,9 +254,10 @@ if __name__ == '__main__':
     # gets data for any coins that aren't in the top 100 (or to
     # raise an error if they weren't recognised)
 
+    API_URL += '{}/'
     for coin in coins:
         if coin not in page_one:
-            r = get_response(API_URL_INDIVIDUAL.format(coin.lower()))
+            r = get_response(API_URL.format(coin.lower()))
             try:
                 if r['error'] == 'id not found':
                     print('No matches found for coin name/symbol: \'{}\'.'.format(coin))
