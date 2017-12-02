@@ -93,20 +93,11 @@ class Coin:
             self.formatted_value = '{} {}'.format('{0:,.{p}f}'.format(self.value, p=config.dp_fiat),
                                                     config.currency)
 
-            if len(self.name) > Coin.m_name:
-                Coin.m_name = len(self.name)
-
-            if len(self.symbol) > Coin.m_symbol:
-                Coin.m_symbol = len(self.symbol)
-
-            if len(self.formatted_local_price) > Coin.m_price:
-                Coin.m_price = len(self.formatted_local_price)
-
-            if len(self.formatted_held) > Coin.m_held:
-                Coin.m_held = len(self.formatted_held)
-
-            if len(self.formatted_value) > Coin.m_value:
-                Coin.m_value = len(self.formatted_value)
+            Coin.m_name = self.check_longest(self.name, Coin.m_name)
+            Coin.m_symbol = self.check_longest(self.symbol, Coin.m_symbol)
+            Coin.m_price = self.check_longest(self.formatted_local_price, Coin.m_price)
+            Coin.m_held = self.check_longest(self.formatted_held, Coin.m_held)
+            Coin.m_value = self.check_longest(self.formatted_value, Coin.m_value)
 
         if comparison:
             if avoid_self and self.symbol.lower() == 'btc':
@@ -133,49 +124,50 @@ class Coin:
                 self.formatted_value_in_eth = '{} {}'.format('{0:,.{p}f}'.format(
                     self.value_in_eth, p=config.dp_crypto), comparison['ethereum'].symbol)
 
-            if len(self.formatted_value_in_btc) > Coin.m_value_btc:
-                Coin.m_value_btc = len(self.formatted_value_in_btc)
-
-            if len(self.formatted_value_in_eth) > Coin.m_value_eth:
-                Coin.m_value_eth = len(self.formatted_value_in_eth)
-
-            if len(self.formatted_value) > Coin.m_value:
-                Coin.m_value = len(self.formatted_value)
+            Coin.m_value = self.check_longest(self.formatted_value, Coin.m_value)
+            Coin.m_value_btc = self.check_longest(self.formatted_value_in_btc, Coin.m_value_btc)
+            Coin.m_value_eth = self.check_longest(self.formatted_value_in_eth, Coin.m_value_eth)
 
         if held:
-            if len(self.formatted_price_in_btc) > Coin.m_price_btc:
-                Coin.m_price_btc = len(self.formatted_price_in_btc)
+            Coin.m_price_btc = self.check_longest(self.formatted_price_in_btc, Coin.m_price_btc)
+            Coin.m_price_eth = self.check_longest(self.formatted_price_in_eth, Coin.m_price_eth)
 
-            if len(self.formatted_price_in_eth) > Coin.m_price_eth:
-                Coin.m_price_eth = len(self.formatted_price_in_eth)
-
+    def check_longest(self, current, longest):
+        return len(current) if len(current) > longest else longest
 
     def get_percent(self):
         self.percent = (self.value / Coin.total_value) * 100
         self.formatted_percent = '{}%'.format('{0:,.{p}f}'.format(self.percent, p=config.dp_percent))
 
-        if len(self.formatted_percent) > Coin.m_percent:
-            Coin.m_percent = len(self.formatted_percent)
-
-
+        Coin.m_percent = self.check_longest(self.formatted_percent, Coin.m_percent)
 
     @classmethod
     def format_totals(cls):
         cls.formatted_total_value = '{} {}'.format('{0:,.{p}f}'.format(cls.total_value, p=config.dp_fiat),
                                                    config.currency)
 
+        if len(cls.formatted_total_value) > cls.m_value:
+            cls.m_value = len(cls.formatted_total_value)
+
         cls.formatted_total_value_in_btc = '{} {}'.format('{0:,.{p}f}'.format(
             cls.total_value / comparison['bitcoin'].local_price,
             p=config.dp_crypto), comparison['bitcoin'].symbol)
+
+        if len(cls.formatted_total_value_in_btc) > cls.m_value_btc:
+            cls.m_value_btc = len(cls.formatted_total_value_in_btc)
 
         cls.formatted_total_value_in_eth = '{} {}'.format('{0:,.{p}f}'.format(
             cls.total_value / comparison['ethereum'].local_price,
             p=config.dp_crypto), comparison['ethereum'].symbol)
 
+        if len(cls.formatted_total_value_in_eth) > cls.m_value_eth:
+            cls.m_value_eth = len(cls.formatted_total_value_in_eth)
+
         cls.totals_str = '{:>{v}}{:>{b}}{:>{e}}'.format(cls.formatted_total_value,
                                                         cls.formatted_total_value_in_btc,
                                                         cls.formatted_total_value_in_eth,
-                                                        v=cls.m_value+len(ps), b=cls.m_value_btc+len(pb),
+                                                        v=cls.m_value+len(ps),
+                                                        b=cls.m_value_btc+len(pb),
                                                         e=cls.m_value_eth+len(pb))
 
 
@@ -191,7 +183,6 @@ def calc_percents(results):
     for coin in results:
         coin.percent = (coin.value / Coin.total_value) * 100
         print(coin.name, coin.percent)
-
 
 
 def draw_border(name, a, b, c, d, e, f, g, h):
@@ -285,9 +276,11 @@ if __name__ == '__main__':
     else:
         sorted_coins = sorted(results, key=operator.attrgetter(config.sort_by), reverse=True)
 
-    columns = ('{ver2}{ps}{:>4}{ps}{ver1}{ps}{:{m_name}}{ps}{ver1}{ps}{:>{m_price}}{pb}{:>{m_price_btc}}{pb}' \
-               '{:>{m_price_eth}}{ps}{ver2}{ps}{:>{m_held}} {:{m_symbol}}{ps}{ver2}{ps}{:>{m_value}}{pb}' \
-               '{:>{m_value_btc}}{pb}{:>{m_value_eth}}{ps}{ver2}')
+    columns = ('{ver2}{ps}{:>4}{ps}' \
+               '{ver1}{ps}{:{m_name}}{ps}' \
+               '{ver1}{ps}{:>{m_price}}{pb}{:>{m_price_btc}}{pb}{:>{m_price_eth}}{ps}' \
+               '{ver2}{ps}{:>{m_held}} {:{m_symbol}}{ps}' \
+               '{ver2}{ps}{:>{m_value}}{pb}{:>{m_value_btc}}{pb}{:>{m_value_eth}}{ps}{ver2}')
 
     pad = (Coin.m_name + Coin.m_price + Coin.m_price_btc + Coin.m_price_eth +
            Coin.m_held + Coin.m_symbol + (len(ps)*8) + (len(pb)*2) + 9)
