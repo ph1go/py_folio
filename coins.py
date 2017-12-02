@@ -13,7 +13,6 @@ ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 CONFIG_FILE = os.path.join(ROOT_PATH, 'config.ini')
 COINS_FILE = os.path.join(ROOT_PATH, 'coins.ini')
 API_URL = 'https://api.coinmarketcap.com/v1/ticker/'
-#API_URL_INDIVIDUAL = API_URL_TOP_100 + '{}/'
 
 sort_dict = {'rank': 'rank', 'name': 'name', 'held value': 'value'}
 
