@@ -14,7 +14,7 @@ CONFIG_FILE = os.path.join(ROOT_PATH, 'config.ini')
 COINS_FILE = os.path.join(ROOT_PATH, 'coins.ini')
 API_URL = 'https://api.coinmarketcap.com/v1/ticker/'
 
-sort_dict = {'rank': 'rank', 'name': 'name', 'held value': 'value'}
+sort_dict = {'rank': 'rank', 'held value': 'value', 'name': 'name'}
 
 class Config:
     def __init__(self, ini):
