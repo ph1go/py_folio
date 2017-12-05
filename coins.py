@@ -60,13 +60,17 @@ class CoinsFile(Config):
         super().__init__(COINS_FILE)
         self.coins = {}
         for section in self.config.sections():
-            self.coins[self.config[section]['name'].lower()] = float(self.config[section]['held'])
+            name = '-'.join(self.config[section]['name'].split())
+            self.coins[name.lower()] = float(self.config[section]['held'])
 
 
 class Coin:
     total_value = 0
-    m_name = m_symbol = m_price = m_price_btc = m_price_eth = 0
-    m_held = m_value = m_value_btc = m_value_eth = m_percent = 0
+    m_name = m_symbol = 0
+    m_price = m_price_btc = m_price_eth = 0
+    m_held = 0
+    m_value = m_value_btc = m_value_eth = 0
+    m_percent = 0
 
     def __init__(self, data, config, held=None, comparison=None):
         self.data = data
@@ -204,6 +208,10 @@ def draw_border(name, a, b, c, d, e, f, g, h):
                 + (hor*(Coin.m_percent+(g*2))) + f)
 
 if __name__ == '__main__':
+    #print('\u25b2')
+    #print('\uff1d')
+    #print('\u25bc')
+
     # border chars
     tl, tm1, tm2, tr = '\u2554', '\u2564', '\u2566', '\u2557'
     ml, mm1, mm2, mr = '\u2560', '\u256a', '\u256c', '\u2563'
